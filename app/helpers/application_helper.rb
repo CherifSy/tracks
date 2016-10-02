@@ -22,10 +22,6 @@ module ApplicationHelper
       {:class => "container_toggle", :id => id} )
   end
 
-  def navigation_link(name, options = {}, html_options = nil, *parameters_for_method_reference)
-    link_to name, options, html_options
-  end
-
   # Check due date in comparison to today's date Flag up date appropriately with
   # a 'traffic light' colour code
   #
@@ -173,7 +169,7 @@ module ApplicationHelper
     locale = I18n.locale
     # do not include en as locale since this the available by default
     if locale && locale != :en
-      javascript_include_tag("i18n/jquery.ui.datepicker-#{locale}.js")
+      javascript_include_tag("jquery-ui/datepicker-#{locale}")
     end
   end
 

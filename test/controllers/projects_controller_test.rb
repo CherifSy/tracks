@@ -1,6 +1,8 @@
 require 'test_helper'
+require 'support/html_entity_helper'
 
 class ProjectsControllerTest < ActionController::TestCase
+  include HTMLEntityHelper
 
   def setup
   end
@@ -25,6 +27,16 @@ class ProjectsControllerTest < ActionController::TestCase
     assert_equal 2, assigns['deferred_todos'].size
   end
 
+  def test_sorted_current_in_review
+    p = projects(:timemachine)
+    login_as :admin_user
+    get :review
+    current_projects = assigns['current_projects']
+    assert_equal 2, current_projects.length
+    assert_equal projects(:gardenclean), current_projects[0]
+    assert_equal projects(:moremoney), current_projects[1]
+  end
+
   def test_show_exposes_next_project_in_same_state
     login_as :admin_user
     get :show, :id => projects(:timemachine).to_param
@@ -42,13 +54,13 @@ class ProjectsControllerTest < ActionController::TestCase
     assert_ajax_create_increments_count 'My New Project'
   end
 
-  def test_todo_state_is_project_hidden_after_hiding_project
+  def test_todo_is_hidden_after_hiding_project
     p = projects(:timemachine)
     todos = p.todos.active
     login_as(:admin_user)
     xhr :post, :update, :id => 1, "project"=>{"name"=>p.name, "description"=>p.description, "state"=>"hidden"}
     todos.each do |t|
-      assert_equal :project_hidden, t.reload().aasm.current_state
+      assert t.reload().hidden?
     end
     assert p.reload().hidden?
   end
@@ -73,7 +85,7 @@ class ProjectsControllerTest < ActionController::TestCase
     assert_equal 'application/rss+xml', @response.content_type
     #puts @response.body
 
-    assert_xml_select 'rss[version="2.0"]' do
+    assert_select 'rss[version="2.0"]' do
       assert_select 'channel' do
         assert_select '>title', 'Tracks Projects'
         assert_select '>description', "Lists all the projects for #{users(:admin_user).display_name}"
@@ -84,7 +96,7 @@ class ProjectsControllerTest < ActionController::TestCase
         assert_select 'title', /.+/
         assert_select 'description' do
           assert_select_encoded do
-            assert_select 'p', /^\d+&nbsp;actions\. Project is (active|hidden|completed)\.$/
+            assert_select 'p', /^\d+#{nbsp}actions\. Project is (active|hidden|completed)\.$/
           end
         end
         %w(guid link).each do |node|
@@ -117,16 +129,15 @@ class ProjectsControllerTest < ActionController::TestCase
     login_as :admin_user
     get :index, { :format => "atom" }
     assert_equal 'application/atom+xml', @response.content_type
-    # puts @response.body
-
-    assert_xml_select 'feed[xmlns="http://www.w3.org/2005/Atom"]' do
+    assert_equal 'http://www.w3.org/2005/Atom', html_document.children[0].namespace.href
+    assert_select 'feed' do
       assert_select '>title', 'Tracks Projects'
       assert_select '>subtitle', "Lists all the projects for #{users(:admin_user).display_name}"
       assert_select 'entry', 3 do
         assert_select 'title', /.+/
         assert_select 'content[type="html"]' do
           assert_select_encoded do
-            assert_select 'p', /\d+&nbsp;actions. Project is (active|hidden|completed)./
+            assert_select 'p', /\d+#{nbsp}actions. Project is (active|hidden|completed)./
           end
         end
         assert_select 'published', /(#{Regexp.escape(projects(:timemachine).updated_at.xmlschema)}|#{Regexp.escape(projects(:moremoney).updated_at.xmlschema)})/
@@ -229,7 +240,7 @@ class ProjectsControllerTest < ActionController::TestCase
     get :index, { :format => "xml" }
     assert_equal 'application/xml', @response.content_type
 
-    assert_xml_select 'projects' do
+    assert_select 'projects' do
       assert_select 'project', 3 do
         assert_select 'name', /.+/
         assert_select 'state', 'active'

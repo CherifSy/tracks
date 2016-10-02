@@ -99,8 +99,7 @@ class TodosController < ApplicationController
         @todo.add_predecessor_list(p.predecessor_list)
         @saved = @todo.save
         @todo.tag_with(tag_list) if @saved && tag_list.present?
-        @todo.update_state_from_project if @saved
-        @todo.block! if @todo.should_be_blocked?
+        @todo.block! if @todo.uncompleted_predecessors?
       else
         @saved = false
       end
@@ -448,7 +447,9 @@ class TodosController < ApplicationController
     @todo.reload # refresh context and project object too (not only their id's)
 
     update_dependency_state
-    update_todo_state_if_project_changed
+    if @project_changed
+      @remaining_undone_in_project = current_user.projects.find(@original_item_project_id).todos.active.count if source_view_is :project
+    end
 
     determine_changes_by_this_update
     determine_remaining_in_container_count( (@context_changed || @project_changed) ? @original_item : @todo)
@@ -500,13 +501,10 @@ class TodosController < ApplicationController
       @uncompleted_predecessors << predecessor
     end
 
-    # activate successors if they only depend on this todo
     activated_successor_count = 0
     @pending_to_activate = []
     @todo.pending_successors.each do |successor|
-      successor.uncompleted_predecessors.delete(@todo)
-      if successor.uncompleted_predecessors.empty?
-        successor.activate!
+      if successor.uncompleted_predecessors.size == 1
         @pending_to_activate << successor
         activated_successor_count += 1
       end
@@ -591,7 +589,7 @@ class TodosController < ApplicationController
     respond_to do |format|
       format.html do
         init_not_done_counts
-        init_project_hidden_todo_counts
+        init_hidden_todo_counts
         init_data_for_sidebar unless mobile?
       end
       format.m
@@ -1192,12 +1190,6 @@ end
     end
   end
 
-  def update_todo_state_if_project_changed
-    if @project_changed
-      @todo.update_state_from_project
-      @remaining_undone_in_project = current_user.projects.find(@original_item_project_id).todos.active.count if source_view_is :project
-    end
-  end
 
   def update_context
     @context_changed = false
@@ -1324,7 +1316,6 @@ end
   end
 
   def get_not_done_todos
-      # TODO: refactor text feed for done todos to todos/done.text, not /todos.text?done=true
     if params[:done]
       not_done_todos = current_user.todos.completed.completed_after(Time.zone.now - params[:done].to_i.days)
     else

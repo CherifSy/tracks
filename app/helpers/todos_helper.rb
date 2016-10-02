@@ -220,7 +220,7 @@ module TodosHelper
     notes = content_tag(:div, {
       :class => "todo_notes",
       :id => dom_id(todo, 'notes'),
-      :style => "display:none"}) { raw todo.rendered_notes }
+      :style => "display:none"}) { raw render_text(todo.notes) }
     return link+notes
   end
 
@@ -429,7 +429,7 @@ module TodosHelper
   end
 
   def feed_content_for_todo(todo)
-    item_notes = todo.notes ? todo.rendered_notes : ''
+    item_notes = todo.notes ? render_text(todo.notes) : ''
     due = todo.due ? content_tag(:div, t('todos.feeds.due', :date => format_date(todo.due))) : ''
     done = todo.completed? ? content_tag(:div, t('todos.feeds.completed', :date => format_date(todo.completed_at))) : ''
     context_link = link_to(context_url(todo.context), todo.context.name)
@@ -442,21 +442,11 @@ module TodosHelper
   # === handle CRUD actions for todos
 
   def show_todo_on_current_context_page
-    return @todo.context_id==@default_context.id
-  end
-
-  def todo_should_not_be_hidden_on_context_page
-    return !@todo.hidden? ||                        # todo is not hidden --> show
-           (@todo.hidden? && @todo.context.hidden?) # todo is hidden, but context is hidden too --> show
+    @todo.context_id == @default_context.id && (!@todo.hidden? || @todo.context.hidden?)
   end
 
   def show_todo_on_current_project_page
-    return @todo.project.id == @default_project.id
-  end
-
-  def todo_should_not_be_hidden_on_project_page
-    return !@todo.hidden? ||
-           (@todo.project_hidden? && @todo.project.hidden?)
+    @todo.project.id == @default_project.id && (!@todo.hidden? || @todo.project.hidden?)
   end
 
   def should_show_new_item(todo = @todo)
@@ -464,9 +454,9 @@ module TodosHelper
     source_view do |page|
       page.todo     { return !todo.hidden? && !todo.deferred? }
       page.deferred { return todo.deferred? || todo.pending? }
-      page.context  { return show_todo_on_current_context_page && todo_should_not_be_hidden_on_context_page }
       page.tag      { return todo.has_tag?(@tag_name) }
-      page.project  { return show_todo_on_current_project_page && todo_should_not_be_hidden_on_project_page }
+      page.context  { return show_todo_on_current_context_page }
+      page.project  { return show_todo_on_current_project_page }
     end
     return false
   end

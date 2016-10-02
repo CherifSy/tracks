@@ -10,7 +10,7 @@ If you are not confident installing Tracks from source using these instructions,
 
 * If you’d like to install Tracks on a local machine, try the packaged version offered by [Bitnami](http://bitnami.org/stack/tracks) — it runs on Windows, Mac OS X and Linux.
 * If you’d like to run Tracks within a dedicated virtual machine, [JumpBox](http://jumpbox.com/app/tracks) provides preconfigured virtual machine images.
-* Several providers offer individual Tracks user accounts. A list of these providers can be found [on the wiki](https://github.com/TracksApp/tracks/wiki/Tracks-hosting).
+* Several providers offer individual Tracks user accounts. A list of these providers can be found [on the wiki](https://github.com/TracksApp/tracks/wiki/Hosted-Tracks).
 
 (Please note that these third-party options may use older versions of Tracks.)
 
@@ -72,7 +72,7 @@ Tracks is built upon a number of Ruby libraries (known as ‘gems’). The Bundl
 2. Open the file `config/database.yml` and edit the `production:` section with the details of your database. If you are using MySQL the `adapter:` line should read `adapter: mysql2`, `host: localhost` (in the majority of cases), and your username and password should match those you assigned when you created the database. If you are using SQLite3, you should have only two lines under the production section: `adapter: sqlite3` and `database: db/tracks.db`.
 3. Open the file `config/site.yml`, and read through the settings to make sure that they suit your setup. In most cases, all you need to change are the `secret_token`, the administrator email address (`admin_email`), and the time zone setting. For the time zone setting you can use the command `bundle exec rake time:zones:local` to see all available timezones on your machine
 4. If you are using Windows, you may need to check the ‘shebang’ lines (`#!/usr/bin/env ruby`) of the `/public/dispatch.*` files and all the files in the `/script` directory. They are set to `#!/usr/bin/env ruby` by default. This should work for all Unix based setups (Linux or Mac OS X), but Windows users will probably have to change it to something like `#c:/ruby/bin/ruby` to point to the Ruby binary on your system.
-5. If you intend to deploy Tracks using its included web server, you’ll need to change `config.serve_static_assets` to `true` in `config/environments/production.rb` in order for the images, stylesheets, and javascript files to be served correctly.
+5. If you intend to deploy Tracks using its included web server, you’ll need to uncomment and change the `serve_static_assets` configuration option to `true` in `config/site.yml` in order for the images, stylesheets, and javascript files to be served correctly.
 
 ## Populate your database with the Tracks schema
 
@@ -94,11 +94,11 @@ While still in the Terminal inside the Tracks root directory, issue the followin
 
     bundle exec rails server -e production
 
-If all goes well, you should see some text informing you that the server is running: `=> Rails application starting in production on http://0.0.0.0:3000`. If you are already running other services on port 3000, you need to select a different port when running the server, using the `-p` option.
+If all goes well, you should see some text informing you that the server is running: `=> Rails application starting in production on http://localhost:3000`. If you are already running other services on port 3000, you need to select a different port when running the server, using the `-p` option.
 
 ## Visit Tracks in a browser
 
-Visit `http://0.0.0.0:3000/signup` in a browser (or whatever URL and port was reported when you started the server in the step above) and chose a user name and password for admin user. Once logged in as admin, you can add other (ordinary level) users. If you need to access Tracks from a mobile/cellular phone browser, visit `http://yourdomain.com/mobile/`. This mobile version is a special, lightweight version of Tracks, designed to use on a mobile browser.
+Visit `http://localhost:3000/signup` in a browser (or whatever URL and port was reported when you started the server in the step above) and chose a user name and password for admin user. Once logged in as admin, you can add other (ordinary level) users. If you need to access Tracks from a mobile/cellular phone browser, visit `http://yourdomain.com/mobile/`. This mobile version is a special, lightweight version of Tracks, designed to use on a mobile browser.
 
 ## Customise Tracks
 

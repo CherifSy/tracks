@@ -14,7 +14,7 @@ class ProjectsController < ApplicationController
     else
       @contexts = current_user.contexts
       init_not_done_counts(['project'])
-      init_project_hidden_todo_counts(['project'])
+      init_hidden_todo_counts(['project'])
       if params[:only_active_with_no_next_actions]
         @projects = current_user.projects.active.select { |p| count_undone_todos(p) == 0  }
       else
@@ -57,15 +57,14 @@ class ProjectsController < ApplicationController
   def review
     @source_view = params['_source_view'] || 'review'
     @page_title = t('projects.list_reviews')
-    @projects = current_user.projects.load
-    @contexts = current_user.contexts.load
-    @projects_to_review = current_user.projects.select  {|p| p.needs_review?(current_user)}
-    @stalled_projects = current_user.projects.select  {|p| p.stalled?}
-    @blocked_projects = current_user.projects.select  {|p| p.blocked?}
-    @current_projects = current_user.projects.uncompleted.select  {|p| not(p.needs_review?(current_user))}
+    projects = current_user.projects
+    @projects_to_review = projects.select  {|p| p.needs_review?(current_user)}
+    @stalled_projects = projects.select  {|p| p.stalled?}
+    @blocked_projects = projects.select  {|p| p.blocked?}
+    @current_projects = projects.uncompleted.select { |p| not (p.needs_review?(current_user)) }.sort_by { |p| p.last_reviewed || Time.zone.at(0) }
 
     init_not_done_counts(['project'])
-    init_project_hidden_todo_counts(['project'])
+    init_hidden_todo_counts(['project'])
     current_user.projects.cache_note_counts
 
     @page_title = t('projects.list_reviews')
@@ -221,7 +220,7 @@ class ProjectsController < ApplicationController
         @contexts = current_user.contexts
         update_state_counts
         init_data_for_sidebar
-        init_project_hidden_todo_counts(['project'])
+        init_hidden_todo_counts(['project'])
 
         template = 'projects/update'
 
@@ -293,7 +292,7 @@ class ProjectsController < ApplicationController
     @projects = current_user.projects.alphabetize(:state => @state) if @state
     @contexts = current_user.contexts
     init_not_done_counts(['project'])
-    init_project_hidden_todo_counts(['project']) if @state == 'hidden'
+    init_hidden_todo_counts(['project']) if @state == 'hidden'
   end
 
   def actionize
@@ -301,7 +300,7 @@ class ProjectsController < ApplicationController
     @projects = current_user.projects.actionize(:state => @state) if @state
     @contexts = current_user.contexts
     init_not_done_counts(['project'])
-    init_project_hidden_todo_counts(['project']) if @state == 'hidden'
+    init_hidden_todo_counts(['project']) if @state == 'hidden'
   end
 
   def done_todos
@@ -341,6 +340,8 @@ class ProjectsController < ApplicationController
     if default_context_name.present?
       default_context = current_user.contexts.where(:name => default_context_name).first_or_create
       p['default_context_id'] = default_context.id
+    else
+      p['default_context_id'] = nil
     end
   end
 
